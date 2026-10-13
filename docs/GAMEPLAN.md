@@ -13,7 +13,7 @@ Update the **Status board** as milestones land. Don't rewrite history; add to it
 | M0 Scaffold | **done 2026-10-13** (11 tests) | venv + `pip install -e .` + `pytest -q` (empty) green, git initialized, `.gitignore` committed first |
 | M1 Data | **done 2026-10-13** (1,254 aligned days, all 96 pass, max gap 0.09pp) | crash rate per asset within 0.5pp of q; alignment/drop log printed |
 | M2 Model | **done 2026-10-13** (DP, marginals, pairs == brute force to 1e-12; sampler within 3 SE) | DP == brute force (n<=12); pairs == brute force (n<=10); sampler within 3 SE at 1M |
-| M3 Circuits | not started | statevector == BN joint to 1e-10, every bitstring, several random models, n<=12 |
+| M3 Circuits | **done 2026-10-13** (statevector == tree for every pattern, n<=12, 1e-10) | statevector == BN joint to 1e-10, every bitstring, several random models, n<=12 |
 | M4 Scenarios/baselines/metrics | not started | `simulate --mode exact,ideal` on n6, n12; ideal vs exact inside shot-noise CI |
 | M5 Native layout + noisy | not started | FakeFez: 0 swaps, 2q count == 2(n-1), n6..n96; noisy completes n6..n24 (MPS beyond if feasible) |
 | M6 Hardware path/ledger/replay | not started | `plan` E0/E1/E2; `run-ibm` guard tests with mocked network; replay byte-identical |

@@ -14,6 +14,7 @@ import numpy as np
 from qtr import DISCLAIMER
 from qtr.config import load_config, resolve_portfolio
 from qtr.data import build_price_data, compute_crash_data
+from qtr.circuits import build_tree_circuit, counts_to_samples, finalize, two_qubit_gate_count
 from qtr.model import TreeModel, exact_crash_count_distribution, exact_marginals, fit_tree_model
 
 
@@ -146,6 +147,45 @@ def cmd_fit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_circuit(args: argparse.Namespace) -> int:
+    """Show the real crash-tree circuit and run it on a perfect (noise-free) simulator."""
+    from qiskit.primitives import StatevectorSampler
+
+    config = load_config(args.config_dir) if args.config_dir else load_config()
+    tier_tickers = config.universe.tickers(args.tier)
+    if len(tier_tickers) > config.execution.ideal_max_qubits:
+        print(f"Perfect simulation is limited to {config.execution.ideal_max_qubits} qubits on a laptop.")
+        return 2
+    data = build_price_data(config.universe, config.data).for_tier(len(tier_tickers))
+    crashes = compute_crash_data(data, config.data.q)
+    model = fit_tree_model(crashes.indicators_fit, crashes.tickers, data.data_hash,
+                           alpha=config.model.laplace_alpha, clip=config.model.prob_clip)
+    qc = build_tree_circuit(model)
+    print(f"Crash-tree circuit for {args.tier}: {qc.num_qubits} qubits, "
+          f"{two_qubit_gate_count(qc)} controlled rotations (one per tree link)\n")
+    print("Qubit = asset:  " + ", ".join(f"q{i}={t}" for i, t in enumerate(model.tickers)) + "\n")
+    if qc.num_qubits <= 8:
+        print(qc.draw("text", fold=110))
+
+    shots = args.shots
+    result = StatevectorSampler(seed=config.seed).run([finalize(qc)], shots=shots).result()
+    counts = result[0].data.meas.get_counts()
+    samples = counts_to_samples(counts, model.n)
+    exact = exact_marginals(model)
+    print(f"\nRan {shots:,} shots on a perfect simulated quantum computer (each shot = one made-up day).")
+    top = sorted(counts.items(), key=lambda kv: -kv[1])[:3]
+    for key, c in top:
+        crashed = [model.tickers[i] for i, b in enumerate(reversed(key)) if b == "1"]
+        print(f"  {key}  x{c:<6} = {', '.join(crashed) if crashed else 'nobody crashed'}")
+    print(f"\n  {'asset':<9}{'quantum':>9}{'exact':>9}{'within noise?':>15}")
+    for i, t in enumerate(model.tickers):
+        se = np.sqrt(exact[i] * (1 - exact[i]) / shots)
+        ok = abs(samples[:, i].mean() - exact[i]) <= 3 * se
+        print(f"  {t:<9}{samples[:, i].mean():>9.2%}{exact[i]:>9.2%}{'yes' if ok else 'NO':>15}")
+    print(f"\n{DISCLAIMER}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qtr", description="Quantum Tail-Risk Observatory")
     parser.add_argument("--config-dir", default=None, help="folder with the TOML files (default: ./config)")
@@ -164,6 +204,11 @@ def build_parser() -> argparse.ArgumentParser:
                      help="chow_liu = best tree; logical = max 3 links per asset; native = chip-shaped (M5)")
     fit.add_argument("--save", default=None, help="write the fitted model JSON to this path")
     fit.set_defaults(func=cmd_fit)
+
+    circ = sub.add_parser("circuit", help="show the crash-tree circuit and run it on a perfect simulator")
+    circ.add_argument("--tier", default="n6")
+    circ.add_argument("--shots", type=int, default=8000)
+    circ.set_defaults(func=cmd_circuit)
     return parser
 
 
