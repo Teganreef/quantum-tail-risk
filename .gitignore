@@ -1,0 +1,26 @@
+# --- Secrets: never commit these ---
+.env
+.env.*
+*.key
+qiskit-ibm.json
+config/*.local.toml
+
+# --- Generated data (large, personal, or reproducible) ---
+runs/
+data_cache/
+library/
+reports/
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# --- OS / editors ---
+.DS_Store
+.vscode/
+.idea/
