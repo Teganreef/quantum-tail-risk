@@ -11,7 +11,7 @@ Update the **Status board** as milestones land. Don't rewrite history; add to it
 | Milestone | State | Exit gate |
 |---|---|---|
 | M0 Scaffold | **done 2026-10-13** (11 tests) | venv + `pip install -e .` + `pytest -q` (empty) green, git initialized, `.gitignore` committed first |
-| M1 Data | not started | crash rate per asset within 0.5pp of q; alignment/drop log printed |
+| M1 Data | **done 2026-10-13** (1,254 aligned days, all 96 pass, max gap 0.09pp) | crash rate per asset within 0.5pp of q; alignment/drop log printed |
 | M2 Model | not started | DP == brute force (n<=12); pairs == brute force (n<=10); sampler within 3 SE at 1M |
 | M3 Circuits | not started | statevector == BN joint to 1e-10, every bitstring, several random models, n<=12 |
 | M4 Scenarios/baselines/metrics | not started | `simulate --mode exact,ideal` on n6, n12; ideal vs exact inside shot-noise CI |
