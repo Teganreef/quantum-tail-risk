@@ -1,22 +1,53 @@
 # Portfolios to stress-test. Weights are relative: they get normalized to sum to 1.
-# Tickers not in the active tier are dropped with a warning.
+#
+# Nothing is renormalized silently: if a portfolio holds tickers outside the active
+# tier, every report shows the DROPPED WEIGHT for that portfolio and tier.
+# Optional `proxies` map a missing ticker to a stand-in that IS modeled; every
+# report labels the substitution (e.g. "CEG -> VST (proxy)").
+#
+# `kind` labels each portfolio in reports: personal | benchmark | anchor | illustrative.
 #
 # PRIVACY: this file is public on GitHub. Put your REAL weights in
 # config/portfolios.local.toml (gitignored). Any portfolio defined there
 # replaces the one with the same name here. See portfolios.local.example.toml.
+# Before any hardware run, `python -m qtr commit-portfolios` commits a salted hash
+# of the local file (and this file's comparison list) so results can't be cherry-picked.
 
 [portfolios.my_portfolio]
+kind = "personal"
 description = "Owner's portfolio (public placeholder: equal weight; real weights live in the local file)"
 weights = { GOOG = 1, NOW = 1, ISRG = 1, AMZN = 1, GLDM = 1, VST = 1, CEG = 1, HOOD = 1, "BTC-USD" = 1, "ETH-USD" = 1, "SOL-USD" = 1 }
 
-[portfolios.fyp_composite]
-description = "Illustrative composite of a typical finance-TikTok portfolio. Not any real person."
-weights = { NVDA = 1, TSLA = 1, PLTR = 1, SOFI = 1, HOOD = 1, AMD = 1, "BTC-USD" = 1 }
+[portfolios.anchor_n6]
+kind = "anchor"
+description = "Equal weight on the six n6 assets: fully modeled at EVERY tier, so it anchors the VaR-vs-qubits chart"
+weights = { NOW = 1, GOOG = 1, NRG = 1, GLDM = 1, "BTC-USD" = 1, "SOL-USD" = 1 }
+
+# --- Benchmarks. SPY is the S&P 500 proxy (it stands in for VOO / any S&P 500 index fund). ---
+
+[portfolios.sixty_forty]
+kind = "benchmark"
+description = "Classic 60/40: 60% S&P 500 (SPY) / 40% total US bonds (BND)"
+weights = { SPY = 60, BND = 40 }
+
+[portfolios.voo_schd]
+kind = "benchmark"
+description = "50% S&P 500 (SPY as the VOO proxy) / 50% dividend stocks (SCHD)"
+weights = { SPY = 50, SCHD = 50 }
+
+[portfolios.diversified_core]
+kind = "benchmark"
+description = "Diversified core: S&P 500 35, dividends 15, international 15, bonds 25, gold 10"
+weights = { SPY = 35, SCHD = 15, VXUS = 15, BND = 25, GLDM = 10 }
 
 [portfolios.equal_weight_tier]
+kind = "benchmark"
 description = "Equal weight across every asset in the active tier"
 equal_weight_tier = true
 
-[portfolios.sixty_forty]
-description = "Classic 60% stocks / 40% bonds"
-weights = { SPY = 60, TLT = 40 }
+# --- Illustrative ---
+
+[portfolios.fyp_composite]
+kind = "illustrative"
+description = "Illustrative composite of a typical finance-TikTok portfolio. Not any real person."
+weights = { NVDA = 1, TSLA = 1, PLTR = 1, SOFI = 1, HOOD = 1, AMD = 1, "BTC-USD" = 1 }

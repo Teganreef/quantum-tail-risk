@@ -142,6 +142,8 @@ Each milestone lists: files touched → key work → tests → traps.
 - `baselines.py`: historical (the fit-window indicators themselves), independent, Gaussian copula (`sklearn.covariance.LedoitWolf` on normal scores via rank → `norm.ppf`, then Cholesky, then simulate 1M in 100k-row chunks), tree exact (1M samples + DP). Baseline samples are cached per `model_hash` in `library/baselines/` and not recomputed per run (D13).
 - `metrics.py`: marginals and MAE; pair matrix via `S.T @ S / shots`; lift; tail curve `P(count >= k)`; W1 between count distributions (`scipy.stats.wasserstein_distance` with weights, or the CDF-difference sum, which is exact for integer support); KS; VaR/CVaR 95/99 (D14 for the quantile convention); loss-threshold probabilities; Kupiec POF; bootstrap CIs.
 - **Bootstrap speed (D16):** resample via `rng.multinomial(shots, p_unique)` over unique bitstrings. QPU samples at n≥24 are almost all unique, so for pairs use resampled index arrays plus `S.T @ S`. 1,000 × (8000×96 matmul) is a few seconds in numpy. Fine.
+- **Mapping choice (D31, owner rule):** on the fit window, push the historical crash patterns through BOTH the deterministic and bootstrap mappings, for EVERY portfolio, and compare with the realized portfolio returns (VaR/CVaR 95/99 and loss-threshold probabilities). Headline mapping = lowest total error across all portfolios. Bootstrap draws use one shared seed for every source. Log the numbers and the choice in DECISIONS.
+- Every portfolio result carries its tier's dropped weight / proxy note (D30).
 - `experiments.py` v1 + `cli simulate`.
 - **Tests:** hand-computed 3-asset loss mapping; VaR/CVaR on a known discrete distribution; Kupiec against a textbook value; W1 == 0 on identical inputs; ideal-vs-exact differences inside CI on n6.
 
@@ -161,7 +163,7 @@ Each milestone lists: files touched → key work → tests → traps.
 ### M6: Hardware path, ledger, replay
 - `ledger.py`: append-only JSON list; `spent_in_window(now, days=28)`; estimate formula from spec §8 with `circuit_duration` from the target's instruction durations (sum along the critical path; `qc.estimate_duration(target)` if available in the installed qiskit, else a manual critical-path sum) and `backend.default_rep_delay` (fall back to 250 µs if it's missing, and log that). Calibrated estimate = median measured seconds-per-shot from past ledger entries on the same backend family.
 - `execution.run_ibm(...)` order of checks, each with a precise refusal message:
-  1. `is_synthetic` → refuse.
+  1. `is_synthetic` → refuse. Portfolio commitment missing or stale (D32) → refuse.
   2. no `--yes` → refuse.
   3. spent + estimate > cap → refuse, printing all three numbers.
   4. print the full confirmation block; `input()` must return exactly `yes`.
@@ -214,7 +216,7 @@ Written down **before** any QPU data so the results can't quietly reshape the st
 
 - **H1 (scarier at scale):** raw hardware inflates P(count ≥ k) for large k, and the inflation grows with N. Reason: about n × e_readout false crashes per shot, plus gate errors, all with a base rate around 5%, so false 1s outnumber false 0s. At n96 with ~1% readout error that's ~1 spurious crash per shot.
 - **H2 (mitigation helps marginals more than tails):** readout correction cuts marginal MAE a lot, but crash-count W1 at n96 stays well above the shot-noise floor, because tensored correction can't undo correlated and gate-level errors.
-- **H3 (VaR is more robust than count tails):** for N ≥ 12, `my_portfolio` VaR error grows more slowly with N than count-tail error does. Reason: only its 11 qubits (all inside n12) enter its loss, so from n12 upward its VaR error isolates *how those same assets' qubits degrade inside a bigger circuit*. That's a clean probe of crosstalk and context effects. (At n6 the portfolio is partial, since only 6 of its 11 tickers exist, so n6 is excluded from this comparison and the report says so.)
+- **H3 (VaR is more robust than count tails):** `anchor_n6` VaR error grows more slowly with N than count-tail error does. Reason: only its 6 qubits enter its loss, and they exist at every tier, so its VaR error isolates *how the same assets' qubits degrade inside a bigger circuit*. That's a clean probe of crosstalk and context effects (D29).
 - **H4 (MPS keeps up, honestly):** Aer MPS reproduces the E2 ideal distributions at n48 with a small bond dimension. Reason: the tree state has Schmidt rank ≤ 2 across any single tree-edge cut, and one RZZ+RX layer at most squares that per cut. So "beyond brute-force statevector" is true (2^48 amplitudes ≈ 4.5 PB), but "beyond classical" almost certainly is not. The report states this up front. It's the honest framing the spec asks for, and it's a stronger resume line than an overclaim.
 - **H5 (native price is modest):** native model efficiency is ≥ 0.85 at n6–n24 and drops at n96. A guess; recorded so we can be wrong in public.
 

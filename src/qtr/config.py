@@ -117,22 +117,42 @@ class Universe:
         return self.sectors.get(ticker, "Other")
 
 
+PORTFOLIO_KINDS = ("personal", "benchmark", "anchor", "illustrative")
+
+
 @dataclass(frozen=True)
 class Portfolio:
     name: str
     description: str
     weights: dict[str, float] = field(default_factory=dict)  # raw, un-normalized
     equal_weight_tier: bool = False
+    kind: str = "personal"
+    proxies: dict[str, str] = field(default_factory=dict)    # missing ticker -> labeled stand-in
     from_local_file: bool = False  # True if it came from portfolios.local.toml
 
 
 @dataclass(frozen=True)
 class ResolvedPortfolio:
-    """A portfolio's weights restricted to one tier and normalized to sum to 1."""
+    """A portfolio's weights restricted to one tier and normalized to sum to 1.
+
+    Never use `weights` without also showing `dropped_weight` and `proxied`: the
+    normalization hides how much of the real portfolio isn't modeled.
+    """
 
     name: str
+    kind: str
     weights: dict[str, float]
-    dropped: tuple[str, ...]  # tickers in the portfolio but not in the tier
+    dropped: tuple[str, ...]                 # tickers in the portfolio but not modeled in this tier
+    dropped_weight: float                    # fraction (0-1) of the ORIGINAL weight that was dropped
+    proxied: tuple[tuple[str, str], ...]     # (original, proxy) substitutions that were applied
+
+    def coverage_note(self) -> str:
+        """One-line, human-readable statement of what was dropped or substituted."""
+        parts = []
+        if self.dropped:
+            parts.append(f"{self.dropped_weight:.1%} of weight dropped ({', '.join(self.dropped)})")
+        parts += [f"{orig} -> {proxy} (proxy)" for orig, proxy in self.proxied]
+        return "; ".join(parts) if parts else "fully modeled"
 
 
 @dataclass(frozen=True)
@@ -221,6 +241,13 @@ def _parse_portfolios(raw: dict, from_local_file: bool) -> dict[str, Portfolio]:
     for name, spec in raw.get("portfolios", {}).items():
         weights = {str(k): float(v) for k, v in spec.get("weights", {}).items()}
         equal = bool(spec.get("equal_weight_tier", False))
+        kind = spec.get("kind", "personal")
+        if kind not in PORTFOLIO_KINDS:
+            raise ConfigError(f"Portfolio '{name}' has kind '{kind}'; expected one of {PORTFOLIO_KINDS}")
+        proxies = {str(k): str(v) for k, v in spec.get("proxies", {}).items()}
+        stray = sorted(set(proxies) - set(weights))
+        if stray:
+            raise ConfigError(f"Portfolio '{name}' has proxies for tickers it doesn't hold: {stray}")
         if not equal and not weights:
             raise ConfigError(f"Portfolio '{name}' has no weights")
         bad = {t: w for t, w in weights.items() if w <= 0}
@@ -231,6 +258,8 @@ def _parse_portfolios(raw: dict, from_local_file: bool) -> dict[str, Portfolio]:
             description=spec.get("description", ""),
             weights=weights,
             equal_weight_tier=equal,
+            kind=kind,
+            proxies=proxies,
             from_local_file=from_local_file,
         )
     return out
@@ -302,21 +331,39 @@ def _validate(config: Config) -> None:
 def resolve_portfolio(portfolio: Portfolio, tier_tickers: tuple[str, ...]) -> ResolvedPortfolio:
     """Restrict a portfolio to the active tier's tickers and normalize weights to sum to 1.
 
-    Why drop instead of fail: the same portfolio is evaluated at every tier size,
-    and at small tiers some holdings simply aren't modeled. The dropped tickers are
-    returned so the report can show a warning instead of hiding it.
+    For each holding not modeled in this tier:
+      - if the portfolio maps it to a proxy that IS in the tier, its weight moves to
+        the proxy, and the substitution is recorded (reports label it);
+      - otherwise it's dropped, and its share of the original weight is recorded.
+    Dropping instead of failing lets the same portfolio be evaluated at every tier
+    size; reporting `dropped_weight` keeps that from being silent.
     """
     if portfolio.equal_weight_tier:
         n = len(tier_tickers)
-        return ResolvedPortfolio(portfolio.name, {t: 1.0 / n for t in tier_tickers}, dropped=())
+        return ResolvedPortfolio(portfolio.name, portfolio.kind, {t: 1.0 / n for t in tier_tickers},
+                                 dropped=(), dropped_weight=0.0, proxied=())
 
-    kept = {t: w for t, w in portfolio.weights.items() if t in tier_tickers}
-    dropped = tuple(t for t in portfolio.weights if t not in tier_tickers)
+    total_original = sum(portfolio.weights.values())
+    kept: dict[str, float] = {}
+    dropped: list[str] = []
+    proxied: list[tuple[str, str]] = []
+    for ticker, w in portfolio.weights.items():
+        if ticker in tier_tickers:
+            target = ticker
+        elif portfolio.proxies.get(ticker) in tier_tickers:
+            target = portfolio.proxies[ticker]
+            proxied.append((ticker, target))
+        else:
+            dropped.append(ticker)
+            continue
+        kept[target] = kept.get(target, 0.0) + w
     if not kept:
         raise ConfigError(
             f"Portfolio '{portfolio.name}' has no tickers in this tier (it holds {list(portfolio.weights)})"
         )
-    total = sum(kept.values())
+    total_kept = sum(kept.values())
     # Keep tier order so weight vectors line up with asset columns everywhere else.
-    weights = {t: kept[t] / total for t in tier_tickers if t in kept}
-    return ResolvedPortfolio(portfolio.name, weights, dropped)
+    weights = {t: kept[t] / total_kept for t in tier_tickers if t in kept}
+    dropped_weight = sum(portfolio.weights[t] for t in dropped) / total_original
+    return ResolvedPortfolio(portfolio.name, portfolio.kind, weights, tuple(dropped),
+                             dropped_weight, tuple(proxied))

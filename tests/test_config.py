@@ -70,3 +70,59 @@ def test_negative_weight_rejected(config_copy: Path):
     )
     with pytest.raises(ConfigError, match="non-positive"):
         load_config(config_copy)
+
+
+# --- dropped weight, proxies, benchmark portfolios ---------------------------------
+
+def test_dropped_weight_is_reported_not_silent():
+    p = Portfolio("p", "", weights={"A": 3.0, "Z": 1.0})
+    r = resolve_portfolio(p, ("A", "B"))
+    assert r.dropped_weight == pytest.approx(0.25)
+    assert r.weights == {"A": 1.0}
+    assert "25.0% of weight dropped (Z)" in r.coverage_note()
+
+
+def test_proxy_moves_weight_and_is_labeled():
+    p = Portfolio("p", "", weights={"A": 1.0, "CEG": 1.0}, proxies={"CEG": "VST"})
+    r = resolve_portfolio(p, ("A", "VST"))
+    assert r.weights == pytest.approx({"A": 0.5, "VST": 0.5})
+    assert r.dropped_weight == 0.0
+    assert r.proxied == (("CEG", "VST"),)
+    assert "CEG -> VST (proxy)" in r.coverage_note()
+
+
+def test_proxy_not_used_when_original_is_modeled_or_proxy_missing():
+    p = Portfolio("p", "", weights={"A": 1.0, "CEG": 1.0}, proxies={"CEG": "VST"})
+    assert resolve_portfolio(p, ("A", "CEG", "VST")).proxied == ()
+    r = resolve_portfolio(p, ("A",))
+    assert r.dropped == ("CEG",) and r.dropped_weight == pytest.approx(0.5)
+
+
+def test_proxy_for_unheld_ticker_rejected(config_copy: Path):
+    (config_copy / "portfolios.local.toml").write_text(
+        '[portfolios.bad]\nweights = { GOOG = 1 }\nproxies = { CEG = "VST" }\n'
+    )
+    with pytest.raises(ConfigError, match="doesn't hold"):
+        load_config(config_copy)
+
+
+def test_benchmarks_fully_modeled_from_n24_and_anchor_everywhere(config_copy: Path):
+    config = load_config(config_copy)
+    for name in ("sixty_forty", "voo_schd", "diversified_core"):
+        assert config.portfolios[name].kind == "benchmark"
+        for tier in ("n24", "n48", "n96"):
+            assert resolve_portfolio(config.portfolios[name], config.universe.tickers(tier)).dropped_weight == 0
+    anchor = config.portfolios["anchor_n6"]
+    for tier in config.universe.tiers:
+        r = resolve_portfolio(anchor, config.universe.tickers(tier))
+        assert r.dropped_weight == 0 and len(r.weights) == 6
+    assert resolve_portfolio(config.portfolios["diversified_core"], config.universe.tickers("n24")).weights == \
+        pytest.approx({"SPY": 0.35, "SCHD": 0.15, "VXUS": 0.15, "BND": 0.25, "GLDM": 0.10})
+
+
+def test_spy_in_n12_and_n24_swaps(config_copy: Path):
+    u = load_config(config_copy).universe
+    assert "SPY" in u.tickers("n12")
+    n24 = u.tickers("n24")
+    assert {"SCHD", "BND", "VXUS"} <= set(n24)
+    assert not {"GLD", "XLF", "IWM"} & set(n24)

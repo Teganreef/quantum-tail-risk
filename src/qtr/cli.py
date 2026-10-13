@@ -12,7 +12,8 @@ from pathlib import Path
 import numpy as np
 
 from qtr import DISCLAIMER
-from qtr.config import load_config, resolve_portfolio
+from qtr.commitments import verify_commitment, write_commitment
+from qtr.config import ConfigError, load_config, resolve_portfolio
 from qtr.data import build_price_data, compute_crash_data
 from qtr.circuits import build_tree_circuit, counts_to_samples, finalize, two_qubit_gate_count
 from qtr.model import TreeModel, exact_crash_count_distribution, exact_marginals, fit_tree_model
@@ -30,15 +31,27 @@ def cmd_check(args: argparse.Namespace) -> int:
         preview = ", ".join(tickers[:8]) + (", ..." if len(tickers) > 8 else "")
         print(f"  {name:>4}: {len(tickers):>3} assets  ({preview})")
 
-    top_tier = next(reversed(config.universe.tiers.values()))
-    print("\nPortfolios (resolved against the top tier):")
+    print("\nPortfolios: share of each portfolio's weight that is modeled at each tier")
+    tiers = list(config.universe.tiers)
+    print(f"  {'portfolio':<24}{'kind':<14}" + "".join(f"{t:>8}" for t in tiers))
+    notes = []
     for portfolio in config.portfolios.values():
-        resolved = resolve_portfolio(portfolio, top_tier)
-        source = "local file (private)" if portfolio.from_local_file else "portfolios.toml"
-        print(f"  {portfolio.name}: {len(resolved.weights)} holdings, from {source}")
-        if resolved.dropped:
-            print(f"    WARNING: not in universe, dropped: {', '.join(resolved.dropped)}")
-
+        cells = []
+        for tier in tiers:
+            try:
+                r = resolve_portfolio(portfolio, config.universe.tickers(tier))
+                cells.append(f"{1 - r.dropped_weight:>8.0%}")
+                if tier == tiers[-1] and r.coverage_note() != "fully modeled":
+                    notes.append(f"  {portfolio.name} at {tier}: {r.coverage_note()}")
+            except ConfigError:
+                cells.append(f"{'none':>8}")
+        label = portfolio.name + (" (private)" if portfolio.from_local_file else "")
+        print(f"  {label:<24}{portfolio.kind:<14}" + "".join(cells))
+    print("  (weights are renormalized over the modeled part; dropped weight is always reported)")
+    for line in notes:
+        print(line)
+    ok, msg = verify_commitment(config.config_dir)
+    print(f"\nPortfolio commitment: {'OK' if ok else 'NOT READY'} - {msg}")
     print(f"\nQPU budget cap: {config.budget.cap_minutes} min per {config.budget.window_days} days")
     print(f"\n{DISCLAIMER}")
     return 0
@@ -186,6 +199,15 @@ def cmd_circuit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_commit_portfolios(args: argparse.Namespace) -> int:
+    """Write the public pre-registration file for the portfolios (see commitments.py)."""
+    config = load_config(args.config_dir) if args.config_dir else load_config()
+    path = write_commitment(config.config_dir)
+    print(f"Wrote {path.relative_to(config.config_dir.parent)}. Commit it to git before any hardware run.")
+    print("Your private salt is in config/portfolio_salt.local.toml (gitignored). Keep a backup of it.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qtr", description="Quantum Tail-Risk Observatory")
     parser.add_argument("--config-dir", default=None, help="folder with the TOML files (default: ./config)")
@@ -209,6 +231,9 @@ def build_parser() -> argparse.ArgumentParser:
     circ.add_argument("--tier", default="n6")
     circ.add_argument("--shots", type=int, default=8000)
     circ.set_defaults(func=cmd_circuit)
+
+    commit = sub.add_parser("commit-portfolios", help="pre-register portfolios (salted hash of private weights)")
+    commit.set_defaults(func=cmd_commit_portfolios)
     return parser
 
 

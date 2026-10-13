@@ -20,7 +20,7 @@ SECRET_PATTERNS = {
     "long hex/base64 blob": re.compile(r"['\"][A-Za-z0-9_\-]{40,}['\"]"),
 }
 SKIP_SUFFIXES = {".qpy", ".parquet", ".png", ".jpg", ".ico"}
-FORBIDDEN_FILES = {"portfolios.local.toml", ".env", "qiskit-ibm.json"}
+FORBIDDEN_FILES = {"portfolios.local.toml", "portfolio_salt.local.toml", ".env", "qiskit-ibm.json"}
 
 
 def _publishable_files() -> list[Path]:
@@ -48,5 +48,8 @@ def test_no_secret_looking_strings():
         for label, pattern in SECRET_PATTERNS.items():
             for match in pattern.finditer(text):
                 line = text.count("\n", 0, match.start()) + 1
+                line_text = text.splitlines()[line - 1]
+                if "sha256" in line_text or "_hash" in line_text:
+                    continue  # labeled fingerprints (one-way hashes) are meant to be public
                 hits.append(f"{path.relative_to(REPO_ROOT)}:{line} looks like a {label}")
     assert hits == [], "Possible secrets found:\n" + "\n".join(hits)

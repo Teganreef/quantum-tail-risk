@@ -1,6 +1,8 @@
 # Asset universe, split into nested tiers: each tier = previous tier + `add`.
 # Edit freely; the loader checks that tiers stay nested and have the right sizes.
 # CEG was dropped (not enough history for a 5-year window); NRG took its slot (DECISIONS D3).
+# SPY stays in n12 as the S&P 500 proxy for benchmark portfolios. In n24, SCHD/BND/VXUS
+# replaced GLD/XLF/IWM so the benchmark portfolios are fully modeled from n24 up (DECISIONS D28).
 
 [tiers.n6]
 add = ["NOW", "GOOG", "NRG", "GLDM", "BTC-USD", "SOL-USD"]
@@ -9,7 +11,7 @@ add = ["NOW", "GOOG", "NRG", "GLDM", "BTC-USD", "SOL-USD"]
 add = ["ISRG", "AMZN", "VST", "HOOD", "ETH-USD", "SPY"]
 
 [tiers.n24]
-add = ["QQQ", "IWM", "TLT", "GLD", "XLE", "XLU", "XLV", "XLF", "NVDA", "MSFT", "AAPL", "META"]
+add = ["QQQ", "VXUS", "TLT", "BND", "XLE", "XLU", "XLV", "SCHD", "NVDA", "MSFT", "AAPL", "META"]
 
 [tiers.n48]
 add = ["JPM", "XOM", "LLY", "UNH", "COST", "WMT", "KO", "PG", "JNJ", "CVX", "AVGO", "TSLA",
@@ -33,12 +35,12 @@ ordered = ["SCHW", "LIN", "ACN", "PM", "MDT", "BMY", "CVS", "GD", "MMM", "ADP", 
           "TSLA", "XLK", "ACN"]
 "Crypto" = ["BTC-USD", "SOL-USD", "ETH-USD", "COIN", "MSTR"]
 "Power & energy" = ["NRG", "VST", "XLE", "XLU", "XOM", "CVX", "NEE", "USO", "DUK", "SO"]
-"Metals" = ["GLDM", "GLD", "SLV", "XLB", "LIN"]
+"Metals" = ["GLDM", "SLV", "XLB", "LIN"]
 "Health" = ["ISRG", "XLV", "LLY", "UNH", "JNJ", "PFE", "MRK", "ABBV", "TMO", "ABT", "AMGN",
             "GILD", "MDT", "BMY", "CVS"]
-"Financials" = ["HOOD", "XLF", "JPM", "GS", "MA", "V", "BAC", "WFC", "MS", "BLK", "AXP",
+"Financials" = ["HOOD", "JPM", "GS", "MA", "V", "BAC", "WFC", "MS", "BLK", "AXP",
                 "SOFI", "SCHW", "SPGI", "ADP"]
-"Broad market & bonds" = ["SPY", "QQQ", "IWM", "TLT"]
+"Broad market & bonds" = ["SPY", "QQQ", "VXUS", "SCHD", "TLT", "BND"]
 "Consumer" = ["COST", "WMT", "KO", "PG", "XLP", "HD", "LOW", "MCD", "SBUX", "NKE", "DIS",
               "PEP", "XLY", "PM", "CMCSA"]
 "Industrials" = ["CAT", "LMT", "XLI", "BA", "GE", "HON", "DE", "UPS", "RTX", "GD", "MMM"]

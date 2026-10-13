@@ -12,8 +12,8 @@ from qtr.config import DEFAULT_CONFIG_DIR
 def config_copy(tmp_path: Path) -> Path:
     """A throwaway copy of config/ that a test can edit without touching the real files.
 
-    The private portfolios.local.toml is NOT copied, so tests always see the public placeholders.
+    Private *.local.toml files and the real commitment are NOT copied, so tests start clean.
     """
     dest = tmp_path / "config"
-    shutil.copytree(DEFAULT_CONFIG_DIR, dest, ignore=shutil.ignore_patterns("*.local.toml"))
+    shutil.copytree(DEFAULT_CONFIG_DIR, dest, ignore=shutil.ignore_patterns("*.local.toml", "portfolio_commitment.toml"))
     return dest

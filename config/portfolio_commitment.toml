@@ -1,0 +1,8 @@
+# Portfolio pre-registration. Written by `python -m qtr commit-portfolios`.
+# Commit this file BEFORE any hardware run. Hardware runs refuse if it no longer matches.
+# The local hash is salted with a private salt that never leaves the owner's laptop.
+created_utc = "2026-10-13T17:51:47Z"
+public_portfolios_sha256 = "88b156a4231698c67678c348d27bfd42bf9f126a8a60bce835c2296d66650802"
+comparison_portfolios = ["anchor_n6", "diversified_core", "equal_weight_tier", "fyp_composite", "my_portfolio", "sixty_forty", "voo_schd"]
+has_local_file = true
+local_portfolios_salted_sha256 = "4b11565c3a49c5941e5548b62562d2b7f947dfcafe601c342f4ec693894a47d9"
