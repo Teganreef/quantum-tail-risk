@@ -1,0 +1,15 @@
+# Minimum versions; tested with the versions in the comments (2026-10-13).
+qiskit>=2.0            # 2.5.2
+qiskit-ibm-runtime>=0.40  # 0.50.0
+qiskit-aer>=0.17       # 0.17.2
+numpy>=2.0             # 2.5.4
+pandas>=2.2            # 3.0.6
+scipy>=1.13            # 1.18.1
+scikit-learn>=1.5      # 1.9.1
+networkx>=3.3          # 3.7
+yfinance>=0.2.50       # 1.7.0
+plotly>=5.20           # 7.1.0
+matplotlib>=3.8        # 3.11.2
+pyarrow>=15            # 26.0.0
+pytest>=8              # 9.1.1
+mthree>=3.0            # 3.0.0 (optional; readout correction falls back without it)

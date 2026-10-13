@@ -1,0 +1,6 @@
+# Copy this file to config/portfolios.local.toml (which git ignores) and put your real weights in.
+# Weights can be percentages, dollar amounts, or share of portfolio: they get normalized.
+
+[portfolios.my_portfolio]
+description = "My real portfolio"
+weights = { GOOG = 20, NOW = 10, "BTC-USD" = 15 }

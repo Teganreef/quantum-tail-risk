@@ -1,0 +1,70 @@
+# Default settings for the Quantum Tail-Risk Observatory.
+# Every number the pipeline uses lives here (or in universe.toml / portfolios.toml),
+# so a run's behavior is fully described by a snapshot of these files.
+
+[data]
+q = 0.05                 # a "crash day" = an asset's worst 5% of days in the fit window
+history_years = 5        # total history to download (DECISIONS D3)
+holdout_months = 12      # most recent 12 months held back as an out-of-sample test
+max_missing_frac = 0.02  # drop a ticker if more than 2% of aligned days are missing
+cache_dir = "data_cache"
+
+[model]
+laplace_alpha = 1.0      # pseudo-count added to each cell of a 2x2 crash table
+prob_clip = 1e-4         # probabilities clipped to [1e-4, 1 - 1e-4]
+degree_cap = 3           # max neighbors per asset in the "logical" layout tree
+
+[layout]
+mode = "native"                  # "native" (fit tree to chip) or "logical" (let transpiler route)
+fake_backend = "fake_fez"        # stand-in chip for local noisy simulation
+max_two_qubit_error = 0.02       # exclude chip links worse than this
+max_readout_error = 0.05         # exclude qubits whose readout is worse than this
+anneal_iterations = 200000       # simulated-annealing steps for asset-to-qubit assignment
+prim_seed_candidates = 5         # try this many best qubits as the starting point
+
+[execution]
+shots = 8000
+baseline_samples = 1000000       # samples for tree-exact and Gaussian-copula baselines
+ideal_max_qubits = 24            # statevector "ideal" mode limit
+noisy_mps_above = 28             # noisy sim switches to matrix-product-state above this size
+
+[mitigation]
+shared_readout_calibration = true   # one 0s/1s calibration pair per job (DECISIONS D6)
+use_mthree = true                   # tensored fallback is always computed too
+
+[budget]
+cap_minutes = 9.0          # refuse to submit past this much QPU time per window
+window_days = 28           # IBM Open Plan rolling window
+overhead_factor = 1.3      # safety multiplier in the time estimate
+per_pub_seconds = 3.0      # fixed overhead added per circuit in a job
+fallback_rep_delay_s = 0.00025
+
+[metrics]
+bootstrap_resamples = 1000
+var_levels = [0.95, 0.99]
+loss_thresholds = [0.03, 0.05, 0.10]   # P(portfolio loss worse than 3%, 5%, 10%)
+
+[seeds]
+global = 20261013
+
+[experiments.E0]
+description = "Smoke test: smallest tree, mitigated"
+tiers = ["n6"]
+shots = 4000
+variants = ["mitigated"]
+cap_minutes = 0.5
+
+[experiments.E1]
+description = "Scale ladder: native trees at every size, raw and mitigated"
+tiers = ["n6", "n12", "n24", "n48", "n96"]
+shots = 8000
+variants = ["mitigated", "raw"]
+cap_minutes = 3.0
+
+[experiments.E2]
+description = "EXPLORATORY interference dial (no financial meaning)"
+tiers = ["n48"]
+shots = 8000
+variants = ["mitigated"]
+lams = [0.0, 0.05, 0.1, 0.2]
+cap_minutes = 1.5

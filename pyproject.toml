@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qtr"
+version = "0.1.0"
+description = "Quantum Tail-Risk Observatory: encode a historical crash-dependency tree into qubits and measure how real IBM hardware noise distorts tail risk."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: takes more than a few seconds (still runs by default)"]
+filterwarnings = ["ignore::DeprecationWarning"]

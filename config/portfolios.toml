@@ -1,0 +1,22 @@
+# Portfolios to stress-test. Weights are relative: they get normalized to sum to 1.
+# Tickers not in the active tier are dropped with a warning.
+#
+# PRIVACY: this file is public on GitHub. Put your REAL weights in
+# config/portfolios.local.toml (gitignored). Any portfolio defined there
+# replaces the one with the same name here. See portfolios.local.example.toml.
+
+[portfolios.my_portfolio]
+description = "Owner's portfolio (public placeholder: equal weight; real weights live in the local file)"
+weights = { GOOG = 1, NOW = 1, ISRG = 1, AMZN = 1, GLDM = 1, VST = 1, CEG = 1, HOOD = 1, "BTC-USD" = 1, "ETH-USD" = 1, "SOL-USD" = 1 }
+
+[portfolios.fyp_composite]
+description = "Illustrative composite of a typical finance-TikTok portfolio. Not any real person."
+weights = { NVDA = 1, TSLA = 1, PLTR = 1, SOFI = 1, HOOD = 1, AMD = 1, "BTC-USD" = 1 }
+
+[portfolios.equal_weight_tier]
+description = "Equal weight across every asset in the active tier"
+equal_weight_tier = true
+
+[portfolios.sixty_forty]
+description = "Classic 60% stocks / 40% bonds"
+weights = { SPY = 60, TLT = 40 }

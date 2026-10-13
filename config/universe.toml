@@ -1,0 +1,45 @@
+# Asset universe, split into nested tiers: each tier = previous tier + `add`.
+# Edit freely; the loader checks that tiers stay nested and have the right sizes.
+# CEG was dropped (not enough history for a 5-year window); NRG took its slot (DECISIONS D3).
+
+[tiers.n6]
+add = ["NOW", "GOOG", "NRG", "GLDM", "BTC-USD", "SOL-USD"]
+
+[tiers.n12]
+add = ["ISRG", "AMZN", "VST", "HOOD", "ETH-USD", "SPY"]
+
+[tiers.n24]
+add = ["QQQ", "IWM", "TLT", "GLD", "XLE", "XLU", "XLV", "XLF", "NVDA", "MSFT", "AAPL", "META"]
+
+[tiers.n48]
+add = ["JPM", "XOM", "LLY", "UNH", "COST", "WMT", "KO", "PG", "JNJ", "CVX", "AVGO", "TSLA",
+       "AMD", "CRM", "ORCL", "NFLX", "GS", "CAT", "LMT", "NEE", "SLV", "USO", "XLI", "XLP"]
+
+[tiers.n96]
+add = ["MA", "V", "BAC", "WFC", "MS", "BLK", "AXP", "PFE", "MRK", "ABBV", "TMO", "ABT",
+       "AMGN", "GILD", "HD", "LOW", "MCD", "SBUX", "NKE", "DIS", "T", "VZ", "TMUS", "PEP",
+       "BA", "GE", "HON", "DE", "UPS", "RTX", "INTC", "CSCO", "QCOM", "TXN", "IBM", "ADBE",
+       "INTU", "AMAT", "MU", "PLTR", "COIN", "MSTR", "SOFI", "DUK", "SO", "XLK", "XLY", "XLB"]
+
+# If a ticker fails data validation, the next unused name here takes its place
+# (only for n96, so the top tier always has 96 assets). Every swap is logged.
+[replacements]
+ordered = ["SCHW", "LIN", "ACN", "PM", "MDT", "BMY", "CVS", "GD", "MMM", "ADP", "SPGI", "CMCSA"]
+
+# Sector labels, used only for coloring charts.
+[sectors]
+"Tech" = ["NOW", "GOOG", "AMZN", "NVDA", "MSFT", "AAPL", "META", "AVGO", "AMD", "CRM", "ORCL",
+          "NFLX", "INTC", "CSCO", "QCOM", "TXN", "IBM", "ADBE", "INTU", "AMAT", "MU", "PLTR",
+          "TSLA", "XLK", "ACN"]
+"Crypto" = ["BTC-USD", "SOL-USD", "ETH-USD", "COIN", "MSTR"]
+"Power & energy" = ["NRG", "VST", "XLE", "XLU", "XOM", "CVX", "NEE", "USO", "DUK", "SO"]
+"Metals" = ["GLDM", "GLD", "SLV", "XLB", "LIN"]
+"Health" = ["ISRG", "XLV", "LLY", "UNH", "JNJ", "PFE", "MRK", "ABBV", "TMO", "ABT", "AMGN",
+            "GILD", "MDT", "BMY", "CVS"]
+"Financials" = ["HOOD", "XLF", "JPM", "GS", "MA", "V", "BAC", "WFC", "MS", "BLK", "AXP",
+                "SOFI", "SCHW", "SPGI", "ADP"]
+"Broad market & bonds" = ["SPY", "QQQ", "IWM", "TLT"]
+"Consumer" = ["COST", "WMT", "KO", "PG", "XLP", "HD", "LOW", "MCD", "SBUX", "NKE", "DIS",
+              "PEP", "XLY", "PM", "CMCSA"]
+"Industrials" = ["CAT", "LMT", "XLI", "BA", "GE", "HON", "DE", "UPS", "RTX", "GD", "MMM"]
+"Telecom" = ["T", "VZ", "TMUS"]
