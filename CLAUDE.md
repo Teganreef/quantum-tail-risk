@@ -14,7 +14,8 @@ Read in this order before doing anything:
 - Raw beside mitigated, bootstrap CI on every hardware number.
 - No tokens in code, config, logs, run folders, or git.
 - Qiskit 2.x APIs only (primitives V2, PUBs, `generate_preset_pass_manager`).
-- The owner is a CS junior learning quantum: clear code, docstrings that explain *why*, no cleverness for its own sake.
+- The owner is learning quantum computing: clear code, docstrings that explain *why*, no cleverness for its own sake.
+- Real portfolio weights live only in the gitignored `config/portfolios.local.toml`, as percentages. Never copy them into any tracked file, log, report committed to git, or memory.
 
 ## Commands
 - Tests: `pytest -q` (offline, no QPU)

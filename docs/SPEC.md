@@ -1,12 +1,12 @@
 # BUILD SPEC: Quantum Tail-Risk Observatory
 
-> Canonical spec, saved verbatim from the owner on 2026-10-12. The build plan lives in
+> Canonical spec from the owner (2026-10-12), with personal details removed for the public repo. The build plan lives in
 > `docs/GAMEPLAN.md`; judgment calls where this spec is silent live in `docs/DECISIONS.md`.
 > If this file and the gameplan disagree, this file wins unless DECISIONS.md records why.
 
 You are a senior quantitative developer and quantum software engineer. You are building a complete, working project from this spec in one pass. Read the whole document before writing any code. Every section exists for a reason: the "why" explains intent so you can make good judgment calls where the spec is silent. Where the spec is explicit, follow it exactly. Where it is silent, choose the simplest correct option and note the choice in `docs/DECISIONS.md`.
 
-The owner is a 20-year-old CS junior (AI minor), intermediate Python, active investor, learning quantum computing. He will run this on his own laptop and must be able to understand every file. Code clarity and honest results matter more than cleverness.
+The code is run on a personal laptop by someone learning quantum computing, who must be able to understand every file. Code clarity and honest results matter more than cleverness.
 
 ---
 
@@ -21,7 +21,7 @@ Markets don't crash one asset at a time. When tech sells off, a bunch of names d
 ### Goals, in priority order
 1. **Resume-grade engineering and research rigor.** Reproducible, tested, benchmarked against fair classical baselines, every number traceable to raw data.
 2. **Use the quantum hardware where it matters.** Real IBM QPU runs at large scale (50 to 100+ qubits), plus an exploratory experiment whose ideal output cannot be brute-force simulated.
-3. **Useful to the owner.** Stress-test his actual portfolio, and reuse the saved scenarios all month without spending QPU time.
+3. **Useful to the owner.** Stress-test the owner's actual portfolio, and reuse the saved scenarios all month without spending QPU time.
 4. **Visual.** Screenshot-ready charts and one interactive dashboard.
 5. **Teaches.** Plain-English documentation of how every piece works.
 
@@ -106,7 +106,7 @@ At `lam = 0` the circuit is exactly the calibrated model. For `lam > 0` the phas
 - Store tiers in `config/universe.toml`. The user may edit them.
 
 ### Portfolios (`config/portfolios.toml`)
-- `my_portfolio`: equal weight across `GOOG, NOW, ISRG, AMZN, GLDM, VST, CEG, HOOD, BTC-USD, ETH-USD, SOL-USD` with a comment telling the owner to replace with his real weights.
+- `my_portfolio`: equal weight across `GOOG, NOW, ISRG, AMZN, GLDM, VST, CEG, HOOD, BTC-USD, ETH-USD, SOL-USD` with a comment telling the owner to replace with their real weights.
 - `fyp_composite`: an illustrative "typical finance-TikTok portfolio" (e.g., `NVDA, TSLA, PLTR, SOFI, HOOD, AMD, BTC-USD`) labeled everywhere as an illustrative composite, not any real person.
 - `equal_weight_tier`: equal weight across the whole active tier.
 - `sixty_forty`: 60% SPY, 40% TLT.
