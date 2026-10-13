@@ -7,10 +7,14 @@ quantum hardware unless the user runs `run-ibm --yes` and confirms interactively
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
+
+import numpy as np
 
 from qtr import DISCLAIMER
 from qtr.config import load_config, resolve_portfolio
 from qtr.data import build_price_data, compute_crash_data
+from qtr.model import TreeModel, exact_crash_count_distribution, exact_marginals, fit_tree_model
 
 
 def cmd_check(args: argparse.Namespace) -> int:
@@ -76,6 +80,72 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     return 0 if passed else 1
 
 
+def _print_tree(model: TreeModel, mark: set[str]) -> None:
+    """Draw the tree as an indented family tree, root at the top."""
+    m = exact_marginals(model)
+
+    def show(node: int, prefix: str, is_last: bool, is_root: bool) -> None:
+        name = model.tickers[node] + (" *" if model.tickers[node] in mark else "")
+        if is_root:
+            print(f"  {name}  (root: crashes {m[node]:.1%} of days)")
+            child_prefix = "  "
+        else:
+            a = model.tickers[model.parent[node]]
+            p0, p1 = model.cpt[node]
+            branch = "└─ " if is_last else "├─ "
+            print(f"{prefix}{branch}{name:<10} {p0:5.1%} if {a} fine  |  {p1:5.1%} if {a} crashed")
+            child_prefix = prefix + ("   " if is_last else "│  ")
+        kids = model.children(node)
+        for k, child in enumerate(kids):
+            show(child, child_prefix, k == len(kids) - 1, False)
+
+    show(model.root, "", True, True)
+
+
+def cmd_fit(args: argparse.Namespace) -> int:
+    """Fit the crash tree for a tier and print it, plus how well it matches history."""
+    config = load_config(args.config_dir) if args.config_dir else load_config()
+    if args.layout == "native":
+        print("The chip-shaped (native) layout arrives in milestone M5.")
+        return 2
+    tier_tickers = config.universe.tickers(args.tier)
+    data = build_price_data(config.universe, config.data).for_tier(len(tier_tickers))
+    crashes = compute_crash_data(data, config.data.q)
+    fit = lambda cap: fit_tree_model(
+        crashes.indicators_fit, crashes.tickers, data.data_hash,
+        alpha=config.model.laplace_alpha, clip=config.model.prob_clip, degree_cap=cap,
+    )
+    best = fit(None)
+    model = best if args.layout == "chow_liu" else fit(config.model.degree_cap)
+
+    held = set(config.portfolios["my_portfolio"].weights)
+    print(f"Crash tree for {args.tier} ({model.n} assets, layout: {model.layout_mode})")
+    print("Each line: child, its crash chance when its parent is fine | when its parent crashed.")
+    print("* = in my_portfolio\n")
+    _print_tree(model, held)
+
+    print(f"\nDependence captured (sum of link strengths): {model.total_mi():.3f}")
+    if model is not best:
+        print(f"Best possible tree captures {best.total_mi():.3f}; "
+              f"this one keeps {model.total_mi() / best.total_mi():.1%} of it.")
+
+    exact = exact_crash_count_distribution(model)
+    hist = np.bincount(crashes.indicators_fit.sum(axis=1), minlength=model.n + 1) / len(crashes.indicators_fit)
+    print("\nHow many assets crash on the same day: history vs. the tree (exact):")
+    print(f"  {'k or more':>9}{'history':>10}{'tree':>10}")
+    for k in range(1, model.n + 1):
+        h, t = hist[k:].sum(), exact[k:].sum()
+        if h == 0 and t < 1e-4:
+            break
+        print(f"  {k:>9}{h:>10.2%}{t:>10.2%}")
+    if args.save:
+        path = Path(args.save)
+        path.write_text(model.to_json())
+        print(f"\nSaved model to {path}")
+    print(f"\n{DISCLAIMER}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qtr", description="Quantum Tail-Risk Observatory")
     parser.add_argument("--config-dir", default=None, help="folder with the TOML files (default: ./config)")
@@ -87,6 +157,13 @@ def build_parser() -> argparse.ArgumentParser:
     fetch = sub.add_parser("fetch", help="download, validate and cache prices; show crash rates")
     fetch.add_argument("--tier", default="n12", help="which tier to report on (default n12)")
     fetch.set_defaults(func=cmd_fetch)
+
+    fit = sub.add_parser("fit", help="fit the crash tree for a tier and print it")
+    fit.add_argument("--tier", default="n12")
+    fit.add_argument("--layout", default="chow_liu", choices=["chow_liu", "logical", "native"],
+                     help="chow_liu = best tree; logical = max 3 links per asset; native = chip-shaped (M5)")
+    fit.add_argument("--save", default=None, help="write the fitted model JSON to this path")
+    fit.set_defaults(func=cmd_fit)
     return parser
 
 
